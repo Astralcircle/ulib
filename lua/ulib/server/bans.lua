@@ -62,9 +62,7 @@ local function checkBan( steamid64, ip, password, clpassword, name )
 	Msg(string.format("%s (%s)<%s> was kicked by ULib because they are on the ban list\n", name, steamid, ip))
 	return false, message
 end
-hook.Add( "CheckPassword", "ULibBanCheck", checkBan, HOOK_LOW )
--- Low priority to allow servers to easily have another ban message addon
-
+hook.Add( "CheckPassword", "ULibBanCheck", checkBan, HOOK_HIGH )
 
 --[[
 	Function: ban
