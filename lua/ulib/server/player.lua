@@ -97,8 +97,8 @@ end
 		v2.60 - Fixed a bug with the parameters if you didn't pass reason and calling_ply together.
 ]]
 function ULib.kick( ply, reason, calling_ply )
-	local nick = calling_ply and calling_ply:IsValid() and
-		(string.format( "%s(%s)", calling_ply:Nick(), calling_ply:SteamID() ) or "Console")
+	local nick = ( isstring( calling_ply ) and calling_ply ) or ( calling_ply and calling_ply:IsValid() and
+		(string.format( "%s(%s)", calling_ply:Nick(), calling_ply:SteamID() ) or "Console") )
 	local steamid = ply:SteamID()
 	if reason and nick then
 		ply:Kick( string.format( "Kicked by %s - %s", nick, reason ) )
