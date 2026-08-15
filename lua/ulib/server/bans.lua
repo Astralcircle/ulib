@@ -102,7 +102,7 @@ ULib.kickban = ULib.ban
 
 local function writeBan( bandata )
 	sql.QueryTyped( "REPLACE INTO ulib_bans (steamid, time, unban, reason, name, admin, modified_admin, modified_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-		util.SteamIDTo64( bandata.steamID ),
+		util.SteamIDTo64( bandata.steamid ),
 		bandata.time or 0,
 		bandata.unban or 0,
 		bandata.reason,
@@ -165,7 +165,7 @@ function ULib.addBan( steamid, time, reason, name, admin )
 	end
 	t.reason = reason
 	t.name = name
-	t.steamID = steamid
+	t.steamid = steamid
 
 	local strTime = time ~= 0 and ULib.secondsToStringTime( time*60 )
 	local shortReason = "Banned for " .. (strTime or "eternity")
@@ -233,32 +233,17 @@ end
 --[[
 	Function: getBan
 
-	Return info about player ban
+	Returns info about specific player ban
 ]]
-function ULib.getBan(steamid)
-	local ban = sql.QueryTyped( "SELECT * FROM ulib_bans WHERE steamid = ?", util.SteamIDTo64( steamid ) )[1]
-
-	if ban then
-		ban.steamID = steamid
-		ban.steamid = nil
-		return ban
-	end
+function ULib.getBan( steamid )
+	return sql.QueryTyped( "SELECT * FROM ulib_bans WHERE steamid = ?", util.SteamIDTo64( steamid ) )[1]
 end
 
 --[[
 	Function: getBans
 
-	Return all bans
+	Returns all bans
 ]]
 function ULib.getBans()
-	local bans = {}
-
-	for _, ban in ipairs( sql.QueryTyped( "SELECT * FROM ulib_bans" ) ) do
-		local steamid = util.SteamIDFrom64( ban.steamid )
-		ban.steamID = steamid
-		ban.steamid = nil
-		bans[steamid] = ban
-	end
-
-	return bans
+	return sql.QueryTyped( "SELECT * FROM ulib_bans" )
 end
