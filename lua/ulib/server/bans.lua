@@ -100,26 +100,16 @@ end
 ]]
 ULib.kickban = ULib.ban
 
-
-local function escapeOrNull( str )
-	if not str then return "NULL"
-	else return sql.SQLStr(str) end
-end
-
-
 local function writeBan( bandata )
-	sql.Query(
-		"REPLACE INTO ulib_bans (steamid, time, unban, reason, name, admin, modified_admin, modified_time) " ..
-		string.format( "VALUES (%s, %i, %i, %s, %s, %s, %s, %s)",
-			util.SteamIDTo64( bandata.steamID ),
-			bandata.time or 0,
-			bandata.unban or 0,
-			escapeOrNull( bandata.reason ),
-			escapeOrNull( bandata.name ),
-			escapeOrNull( bandata.admin ),
-			escapeOrNull( bandata.modified_admin ),
-			escapeOrNull( bandata.modified_time )
-		)
+	sql.QueryTyped( "REPLACE INTO ulib_bans (steamid, time, unban, reason, name, admin, modified_admin, modified_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		util.SteamIDTo64( bandata.steamID ),
+		bandata.time or 0,
+		bandata.unban or 0,
+		bandata.reason,
+		bandata.name,
+		bandata.admin,
+		bandata.modified_admin,
+		bandata.modified_time
 	)
 end
 
@@ -222,7 +212,7 @@ function ULib.unban( steamid, admin )
 
 	--ULib banlist
 	ULib.bans[ steamid ] = nil
-	sql.Query( "DELETE FROM ulib_bans WHERE steamid=" .. util.SteamIDTo64( steamid ) )
+	sql.QueryTyped( "DELETE FROM ulib_bans WHERE steamid = ?", util.SteamIDTo64( steamid ) )
 	hook.Call( ULib.HOOK_USER_UNBANNED, _, steamid, admin )
 
 end
@@ -236,7 +226,7 @@ end
 
 -- Init our bans table
 if not sql.TableExists( "ulib_bans" ) then
-	sql.Query( "CREATE TABLE IF NOT EXISTS ulib_bans ( " ..
+	sql.QueryTyped( "CREATE TABLE IF NOT EXISTS ulib_bans ( " ..
 		"steamid INTEGER NOT NULL PRIMARY KEY, " ..
 		"time INTEGER NOT NULL, " ..
 		"unban INTEGER NOT NULL, " ..
@@ -245,9 +235,11 @@ if not sql.TableExists( "ulib_bans" ) then
 		"admin TEXT, " ..
 		"modified_admin TEXT, " ..
 		"modified_time INTEGER " ..
-		");" )
-	sql.Query( "CREATE INDEX IDX_ULIB_BANS_TIME ON ulib_bans ( time DESC );" )
-	sql.Query( "CREATE INDEX IDX_ULIB_BANS_UNBAN ON ulib_bans ( unban DESC );" )
+		")"
+	)
+
+	sql.QueryTyped( "CREATE INDEX IDX_ULIB_BANS_TIME ON ulib_bans ( time DESC )" )
+	sql.QueryTyped( "CREATE INDEX IDX_ULIB_BANS_UNBAN ON ulib_bans ( unban DESC )" )
 end
 
 --[[
@@ -256,7 +248,7 @@ end
 	Refreshes the ULib bans.
 ]]
 function ULib.refreshBans()
-	local results = sql.Query( "SELECT * FROM ulib_bans" )
+	local results = sql.QueryTyped( "SELECT * FROM ulib_bans" )
 
 	ULib.bans = {}
 	if results then

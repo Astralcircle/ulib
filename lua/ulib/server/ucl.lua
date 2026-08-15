@@ -118,7 +118,7 @@ end
 local isFirstTimeDBSetup = false
 local function generateUserDB()
 	if not sql.TableExists("ulib_users") then
-		sql.Query([[
+		sql.QueryTyped([[
 			CREATE TABLE IF NOT EXISTS ulib_users (
 				steamid TEXT NOT NULL PRIMARY KEY,
 				name TEXT NULL,
@@ -132,10 +132,6 @@ local function generateUserDB()
 end
 generateUserDB()
 
-local function escape(str)
-	return sql.SQLStr(str, true)
-end
-
 function ucl.saveUser( steamid, userInfo )
 	if not userInfo then
 		userInfo = ucl.users[ steamid ]
@@ -145,25 +141,21 @@ function ucl.saveUser( steamid, userInfo )
 	table.sort( userInfo.deny )
 	local allow, deny = util.TableToJSON( userInfo.allow ), util.TableToJSON( userInfo.deny )
 
-	sql.Query(string.format([[
-		REPLACE INTO ulib_users
-			(steamid, name, usergroup, allow, deny)
-		VALUES
-			('%s', '%s', '%s', '%s', '%s');
-	]], escape( steamid ), escape( userInfo.name or "" ), escape( userInfo.group ), escape( allow ), escape( deny )))
+	sql.QueryTyped( "REPLACE INTO ulib_users (steamid, name, usergroup, allow, deny) VALUES(?, ?, ?, ?, ?)",
+		steamid,
+		userInfo.name or "",
+		userInfo.group,
+		allow,
+		deny
+	)
 end
 
 function ucl.deleteUser( steamid )
-	sql.Query(string.format([[
-		DELETE FROM
-			ulib_users
-		WHERE
-			steamid = '%s'
-	]], escape( steamid )))
+	sql.QueryTyped( "DELETE FROM ulib_users WHERE steamid = ?", steamid )
 end
 
 function ucl.deleteUsers()
-	sql.Query([[DELETE FROM ulib_users;]])
+	sql.Query( "DELETE FROM ulib_users" )
 end
 
 local function reloadGroups()
