@@ -45,7 +45,7 @@ function ULib.getBanMessage( steamid, banData, templateMessage )
 	if unban and unban > 0 then
 		replacements.TIME_LEFT = ULib.secondsToStringTime( unban - os.time() )
 	end
-  
+
   	local banMessage = templateMessage:gsub( "{{([%w_]+)}}", replacements )
 	return banMessage
 end
@@ -250,29 +250,6 @@ if not sql.TableExists( "ulib_bans" ) then
 	sql.Query( "CREATE INDEX IDX_ULIB_BANS_UNBAN ON ulib_bans ( unban DESC );" )
 end
 
-local LEGACY_BANS_FILE = "data/ulib/bans.txt"
---[[
-	Function: getLegacyBans
-
-	Returns bans written by ULib versions prior to 2.7.
-]]
-function ULib.getLegacyBans()
-	if not ULib.fileExists( LEGACY_BANS_FILE ) then
-		return nil
-	end
-
-	local bans, err = ULib.parseKeyValues( ULib.fileRead( LEGACY_BANS_FILE ) )
-
-	if err then
-		return nil
-	else
-		return bans
-	end
-end
-
-local legacy_bans = ULib.getLegacyBans()
-
-
 --[[
 	Function: refreshBans
 
@@ -295,22 +272,6 @@ function ULib.refreshBans()
 			r.modified_time = nilIfNull( r.modified_time )
 			ULib.bans[ r.steamID ] = r
 		end
-	end
-
-	if legacy_bans then
-		sql.Begin()
-		for steamID, bandata in pairs( legacy_bans ) do
-			bandata.steamID = steamID -- Ensure this is set in the data
-			if not ULib.bans[ steamID ] then
-				writeBan( bandata )
-				ULib.bans[ steamID ] = bandata
-			end
-		end
-		sql.Commit()
-
-		Msg( "[ULib] Upgraded bans storage method, moving previous bans file to " .. ULib.backupFile( LEGACY_BANS_FILE ) .. "\n" )
-		ULib.fileDelete( LEGACY_BANS_FILE )
-		legacy_bans = nil
 	end
 end
 hook.Add( "Initialize", "ULibLoadBans", ULib.refreshBans, HOOK_MONITOR_HIGH )
