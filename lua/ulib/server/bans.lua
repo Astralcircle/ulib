@@ -233,6 +233,16 @@ end
 --[[
 	Function: getBan
 
+	Returns whether a player is banned
+]]
+function ULib.isBanned( steamid )
+	return sql.QueryTyped( "SELECT 1 FROM ulib_bans WHERE steamid = ? LIMIT 1", util.SteamIDTo64( steamid ) )[1] ~= nil
+end
+
+
+--[[
+	Function: getBan
+
 	Returns info about specific player ban
 ]]
 function ULib.getBan( steamid )
