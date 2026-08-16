@@ -166,6 +166,7 @@ function ULib.addBan( steamid, time, reason, name, admin )
 	t.reason = reason
 	t.name = name
 	t.steamID = steamid
+	writeBan( t )
 
 	local strTime = time ~= 0 and ULib.secondsToStringTime( time*60 )
 	local shortReason = "Banned for " .. (strTime or "eternity")
@@ -174,6 +175,7 @@ function ULib.addBan( steamid, time, reason, name, admin )
 	end
 
 	local longReason = shortReason
+
 	if reason or strTime or admin then -- If we have something useful to show
 		longReason = "\n" .. ULib.getBanMessage( steamid ) .. "\n" -- Newlines because we are forced to show "Disconnect: <msg>."
 	end
@@ -185,8 +187,6 @@ function ULib.addBan( steamid, time, reason, name, admin )
 
 	-- This redundant kick is to ensure they're kicked -- even if they're joining
 	game.KickID( steamid, shortReason or "" )
-
-	writeBan( t )
 	hook.Call( ULib.HOOK_USER_BANNED, _, steamid, t )
 end
 
