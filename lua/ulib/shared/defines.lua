@@ -259,7 +259,7 @@ ULib.HOOK_USER_KICKED = "ULibPlayerKicked"
 	Parameters passed to callback:
 
 		steamid - String of SteamID of the banned player.
-		ban_data - The table data about the ban, exactly like it would be stored in ULib.bans.
+		ban_data - The table data about the ban, exactly like it would be stored in ULib bans.
 
 	Revisions:
 

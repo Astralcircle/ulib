@@ -15,7 +15,7 @@ ULib.BanMessage = [[
 {{TIME_LEFT}} ]]
 
 function ULib.getBanMessage( steamid, banData, templateMessage )
-	banData = banData or ULib.bans[ steamid ]
+	banData = banData or ULib.getBan( steamid )
 	if not banData then return end
 	templateMessage = templateMessage or ULib.BanMessage
 
@@ -52,7 +52,7 @@ end
 
 local function checkBan( steamid64, ip, password, clpassword, name )
 	local steamid = util.SteamIDFrom64( steamid64 )
-	local banData = ULib.bans[ steamid ]
+	local banData = ULib.getBan( steamid )
 	if not banData then return end -- Not banned
 
 	-- Nothing useful to show them, go to default message
@@ -149,8 +149,9 @@ function ULib.addBan( steamid, time, reason, name, admin )
 	-- Clean up passed data
 	local t = {}
 	local timeNow = os.time()
-	if ULib.bans[ steamid ] then
-		t = ULib.bans[ steamid ]
+	local banData = ULib.getBan( steamid )
+	if banData then
+		t = banData
 		t.modified_admin = admin_name
 		t.modified_time = timeNow
 	else
@@ -165,8 +166,6 @@ function ULib.addBan( steamid, time, reason, name, admin )
 	t.reason = reason
 	t.name = name
 	t.steamID = steamid
-
-	ULib.bans[ steamid ] = t
 
 	local strTime = time ~= 0 and ULib.secondsToStringTime( time*60 )
 	local shortReason = "Banned for " .. (strTime or "eternity")
@@ -207,22 +206,11 @@ end
 		v2.10 - Initial
 ]]
 function ULib.unban( steamid, admin )
-	RunConsoleCommand("removeid", steamid) -- Remove from srcds in case it was stored there
-	RunConsoleCommand("writeid") -- Saving
-
 	--ULib banlist
-	ULib.bans[ steamid ] = nil
 	sql.QueryTyped( "DELETE FROM ulib_bans WHERE steamid = ?", util.SteamIDTo64( steamid ) )
 	hook.Call( ULib.HOOK_USER_UNBANNED, _, steamid, admin )
 
 end
-
-
-local function nilIfNull(data)
-	if data == "NULL" then return nil
-	else return data end
-end
-
 
 -- Init our bans table
 if not sql.TableExists( "ulib_bans" ) then
@@ -243,27 +231,36 @@ if not sql.TableExists( "ulib_bans" ) then
 end
 
 --[[
-	Function: refreshBans
+	Function: getBan
 
-	Refreshes the ULib bans.
+	Returns whether a player is banned
 ]]
-function ULib.refreshBans()
-	local results = sql.QueryTyped( "SELECT * FROM ulib_bans" )
+function ULib.isBanned( steamid )
+	return sql.QueryTyped( "SELECT 1 FROM ulib_bans WHERE steamid = ? LIMIT 1", util.SteamIDTo64( steamid ) )[1] ~= nil
+end
 
-	ULib.bans = {}
-	if results then
-		for i=1, #results do
-			local r = results[i]
 
-			r.steamID = util.SteamIDFrom64( r.steamid )
-			r.steamid = nil
-			r.reason = nilIfNull( r.reason )
-			r.name = nilIfNull( r.name )
-			r.admin = nilIfNull( r.admin )
-			r.modified_admin = nilIfNull( r.modified_admin )
-			r.modified_time = nilIfNull( r.modified_time )
-			ULib.bans[ r.steamID ] = r
-		end
+--[[
+	Function: getBan
+
+	Returns info about specific player ban
+]]
+function ULib.getBan( steamid )
+	local ban = sql.QueryTyped( "SELECT * FROM ulib_bans WHERE steamid = ?", util.SteamIDTo64( steamid ) )[1]
+
+	-- Backwards compatibility
+	if ban then
+		ban.steamID = util.SteamIDFrom64( ban.steamid )
+		ban.steamid = nil
+		return ban
 	end
 end
-hook.Add( "Initialize", "ULibLoadBans", ULib.refreshBans, HOOK_MONITOR_HIGH )
+
+--[[
+	Function: getBans
+
+	Returns internal table of all bans
+]]
+function ULib.getBans()
+	return sql.QueryTyped( "SELECT * FROM ulib_bans" )
+end
