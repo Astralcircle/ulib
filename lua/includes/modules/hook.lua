@@ -1,8 +1,6 @@
 local gmod = gmod
 local math = math
 local table = table
-local file = file
-local timer = timer
 local pairs = pairs
 local setmetatable = setmetatable
 local isstring = isstring
@@ -11,14 +9,10 @@ local isbool = isbool
 local isfunction = isfunction
 local type = type
 local ErrorNoHaltWithStack = ErrorNoHaltWithStack
-local ErrorNoHalt = ErrorNoHalt
-local print = print
 local GProtectedCall = ProtectedCall
 local tostring = tostring
 local error = error
 local rawget = rawget
-
-local _GLOBAL = _G
 
 local EMPTY_FUNC = function() end
 
@@ -432,80 +426,5 @@ function ProtectedCall(event_name, gm, ...)
 			local node = post_hooks[i]
 			GProtectedCall(node[ 0 --[[func]] ], returned_values, ...)
 		end
-	end
-end
-
-function Debug(event_name)
-	local event = events[event_name]
-	if not event then
-		print("No event with that name")
-		return
-	end
-
-	local lists = event[0]
-	print("------START------")
-	print("event:", event_name)
-	for i = 1, 3 do
-		local list = lists[i]
-		for j = 1, list[ 0 --[[length]] ] do
-			local node = list[j]
-			print("----------")
-			print("   name:", node.name)
-			print("   func:", node[0])
-			print("   real_func:", event[node.name].real_func)
-			print("   priority:", PRIORITIES_NAMES[node.priority])
-			print("   idx:", node.idx)
-		end
-	end
-	print("-------END-------")
-end
-
-do -- ulx and dlib
-	-- ulx/ulib support
-	if file.Exists("ulib/shared/hook.lua", "LUA") then
-		local old_include = _GLOBAL.include
-		function _GLOBAL.include(f, ...)
-			if f == "ulib/shared/hook.lua" then
-				timer.Simple(0, function()
-					print("Srlion Hook Library: Stopped ULX/ULib from loading it's hook library!")
-				end)
-				_GLOBAL.include = old_include
-				return
-			end
-			return old_include(f, ...)
-		end
-
-		-- this could make an issue with addons that retrieve all hooks and call them, as POST_HOOK(_RETURN)
-		-- will be called randomly and their first argument won't be the "returned values" table
-		function GetULibTable()
-			local new_events = {}
-
-			for event_name, event in pairs(events) do
-				local hooks = { [-2] = {}, [-1] = {}, [0] = {}, [1] = {}, [2] = {} }
-				for i = 1, 3 do
-					local list = event[0][i]
-					for j = 1, list[ 0 --[[length]] ] do
-						local node = list[j]
-						local priority = node.priority
-						priority = isnumber(priority) and priority or priority[1]
-						priority = math.Clamp(priority, -2, 2) -- just to make sure it's in the range
-						local hook_table = event[node.name]
-						hooks[priority][node.name] = hook_table.real_func
-					end
-				end
-				new_events[event_name] = hooks
-			end
-
-			return new_events
-		end
-	end
-
-	-- bloated hooks warning
-	if file.Exists("dlib/modules/hook.lua", "LUA") then
-		timer.Simple(0, function()
-			ErrorNoHalt("Srlion Hook Library: DLib is installed, you should remove the bloated addon!\n")
-			ErrorNoHalt(
-				"Srlion Hook Library: DLIB is also slower than default hook library, check github.com/srlion/Hook-Library for more info! THIS MEANS IT MAKES YOUR SERVER SLOWER!\n")
-		end)
 	end
 end
